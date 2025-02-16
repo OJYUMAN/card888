@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Card Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .game-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .card-input {
+            margin: 20px 0;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            padding: 8px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .result-item {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .instructions {
+            background-color: #e8f5e9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .card {
+            display: inline-block;
+            margin: 5px;
+            width: 100px;
+            height: 140px;
+        }
+        .card-container {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+        .card-group {
+            margin: 10px 0;
+        }
+        .card-group-label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="instructions">
+            <h2>เกมไพ่</h2>
+            <p>กำหนดให้ไพ่หนึ่งสำรับมี 52 ใบ แบ่งออกเป็น 4 ชุด ได้แก่ ♥ ♦ ♣ ♠</p>
+            <p>แต่ละชุดมีหน้าไพ่ 13 แบบ ได้แก่ A 2 3 4 5 6 7 8 9 10 J Q K</p>
+            <p>สุ่มหยิบไพ่จากสำรับ 5 ใบ</p>
+        </div>
+
+        <div class="card-input">
+            <div class="input-group">
+                <label>ระบุ "สัญลักษณ์ของดอก" (เช่น ♥ ♦ ♣ ♠ ♥):</label>
+                <input type="text" id="symbols" placeholder="♥ ♦ ♣ ♠ ♥">
+            </div>
+            <div class="input-group">
+                <label>ระบุ "หน้าไพ่" (เช่น 3 5 7 9 11):</label>
+                <input type="text" id="numbers" placeholder="3 5 7 9 11">
+            </div>
+            <button onclick="calculateCards()">คำนวณ</button>
+        </div>
+
+        <div id="results" class="results"></div>
+    </div>
+
+    <script>
+        function createCardSVG(symbol, number) {
+            const symbolColor = (symbol === '♥' || symbol === '♦') ? '#FF0000' : '#000000';
+            const displayNumber = number === 1 ? 'A' :
+                number === 11 ? 'J' :
+                    number === 12 ? 'Q' :
+                        number === 13 ? 'K' : number;
+
+            return `
+                <svg class="card" viewBox="0 0 100 140">
+                    <rect x="5" y="5" width="90" height="130" fill="white" stroke="#000" stroke-width="2" rx="10"/>
+                    <text x="15" y="30" fill="${symbolColor}" font-size="20">${symbol}${displayNumber}</text>
+                    <text x="50" y="80" fill="${symbolColor}" font-size="40" text-anchor="middle">${symbol}</text>
+                    <text x="85" y="120" fill="${symbolColor}" font-size="20" text-anchor="end">${symbol}${displayNumber}</text>
+                </svg>
+            `;
+        }
+
+        function deepCopy(obj) {
+            return JSON.parse(JSON.stringify(obj));
+        }
+
+        function calculateCards() {
+            const symbols = document.getElementById('symbols').value.trim().split(' ');
+            const numbers = document.getElementById('numbers').value.trim().split(' ').map(Number);
+            
+            const cardDict = {};
+            for (let i = 0; i < symbols.length; i++) {
+                const symbol = symbols[i];
+                if (!cardDict[symbol]) {
+                    cardDict[symbol] = [];
+                }
+                cardDict[symbol].push(numbers[i]);
+            }
+
+            const X = {};
+            const Y = {};
+            
+            for (const [symbol, nums] of Object.entries(cardDict)) {
+                if (nums.length > 1) {
+                    for (let i = 0; i < nums.length; i++) {
+                        for (let j = i + 1; j < nums.length; j++) {
+                            if (nums[j] - nums[i] >= 1 && nums[j] - nums[i] <= 6) {
+                                if (!X[symbol]) X[symbol] = [];
+                                if (!Y[symbol]) Y[symbol] = [];
+                                X[symbol].push(nums[i]);
+                                Y[symbol].push(nums[j]);
+                            } else if (nums[i] - nums[j] >= 1 && nums[i] - nums[j] <= 6) {
+                                if (!X[symbol]) X[symbol] = [];
+                                if (!Y[symbol]) Y[symbol] = [];
+                                X[symbol].push(nums[j]);
+                                Y[symbol].push(nums[i]);
+                            }
+                        }
+                    }
+                }
+            }
+
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+            let resultIndex = 0;
+
+            for (const symbol in X) {
+                for (let i = 0; i < X[symbol].length; i++) {
+                    let ABC = deepCopy(cardDict);
+                    ABC[symbol] = ABC[symbol].filter(n => n !== X[symbol][i] && n !== Y[symbol][i]);
+                    if (ABC[symbol].length === 0) delete ABC[symbol];
+                    
+                    const ABC_ = deepCopy(ABC);
+                    let values = Object.values(ABC).flat().sort((a, b) => a - b);
+                    
+                    if (new Set(values).size !== values.length) {
+                        if (new Set(values).size === 1) {
+                            if ('♦' in ABC) ABC['♦'] = [14];
+                            if ('♠' in ABC) ABC['♠'] = [15];
+                            if ('♥' in ABC) ABC['♥'] = [16];
+                            if ('♣' in ABC) ABC['♣'] = [17];
+                            values = Object.values(ABC).flat().sort((a, b) => a - b);
+                        } else {
+                            if (values[0] < values[1]) {
+                                const A = values[0];
+                                for (const [key, value] of Object.entries(ABC)) {
+                                    if (value.includes(values[2])) {
+                                        ABC[key] = value.filter(v => v !== values[2]);
+                                        if (ABC[key].length === 0) delete ABC[key];
+                                        break;
+                                    }
+                                }
+                                if ('♦' in ABC) ABC['♦'] = [14];
+                                if ('♠' in ABC) ABC['♠'] = [15];
+                                if ('♥' in ABC) ABC['♥'] = [16];
+                                if ('♣' in ABC) ABC['♣'] = [17];
+                                values = Object.values(ABC).flat().sort((a, b) => a - b);
+                            } else {
+                                const C = values[2];
+                                for (const [key, value] of Object.entries(ABC)) {
+                                    if (value.includes(values[2])) {
+                                        ABC[key] = value.filter(v => v !== values[2]);
+                                        if (ABC[key].length === 0) delete ABC[key];
+                                        break;
+                                    }
+                                }
+                                if ('♦' in ABC) ABC['♦'] = [14];
+                                if ('♠' in ABC) ABC['♠'] = [15];
+                                if ('♥' in ABC) ABC['♥'] = [16];
+                                if ('♣' in ABC) ABC['♣'] = [17];
+                                values = Object.values(ABC).flat().sort((a, b) => a - b);
+                            }
+                        }
+                    }
+
+                    const A = values[0];
+                    const B = values[1];
+                    const C = values[2];
+
+                    let p1, p2, p3;
+                    const diff = Y[symbol][i] - X[symbol][i];
+                    
+                    const patterns = {
+                        1: () => { 
+                            for (const [key, value] of Object.entries(ABC_)) {
+                                if (value.includes(A)) p1 = {symbol: key, number: A};
+                                if (value.includes(B)) p2 = {symbol: key, number: B};
+                                if (value.includes(C)) p3 = {symbol: key, number: C};
+                            }
+                            if (JSON.stringify(ABC_) !== JSON.stringify(ABC)) {
+                                for (const [key, value] of Object.entries(ABC)) {
+                                    if (value.includes(A)) p1 = {symbol: key, number: values[1]};
+                                    if (value.includes(B)) p2 = {symbol: key, number: values[1]};
+                                    if (value.includes(C)) p3 = {symbol: key, number: values[1]};
+                                }
+                            }
+                        },
+                        2: () => {
+                            for (const [key, value] of Object.entries(ABC_)) {
+                                if (value.includes(A)) p1 = {symbol: key, number: A};
+                                if (value.includes(C)) p2 = {symbol: key, number: C};
+                                if (value.includes(B)) p3 = {symbol: key, number: B};
+                            }
+                            if (JSON.stringify(ABC_) !== JSON.stringify(ABC)) {
+                                for (const [key, value] of Object.entries(ABC)) {
+                                    if (value.includes(A)) p1 = {symbol: key, number: values[1]};
+                                    if (value.includes(C)) p2 = {symbol: key, number: values[1]};
+                                    if (value.includes(B)) p3 = {symbol: key, number: values[1]};
+                                }
+                            }
+                        },
+                        3: () => {
+                            for (const [key, value] of Object.entries(ABC_)) {
+                                if (value.includes(B)) p1 = {symbol: key, number: B};
+                                if (value.includes(A)) p2 = {symbol: key, number: A};
+                                if (value.includes(C)) p3 = {symbol: key, number: C};
+                            }
+                            if (JSON.stringify(ABC_) !== JSON.stringify(ABC)) {
+                                for (const [key, value] of Object.entries(ABC)) {
+                                    if (value.includes(B)) p1 = {symbol: key, number: values[1]};
+                                    if (value.includes(A)) p2 = {symbol: key, number: values[1]};
+                                    if (value.includes(C)) p3 = {symbol: key, number: values[1]};
+                                }
+                            }
+                        },
+                        4: () => {
+                            for (const [key, value] of Object.entries(ABC_)) {
+                                if (value.includes(B)) p1 = {symbol: key, number: B};
+                                if (value.includes(C)) p2 = {symbol: key, number: C};
+                                if (value.includes(A)) p3 = {symbol: key, number: A};
+                            }
+                            if (JSON.stringify(ABC_) !== JSON.stringify(ABC)) {
+                                for (const [key, value] of Object.entries(ABC)) {
+                                    if (value.includes(B)) p1 = {symbol: key, number: values[1]};
+                                    if (value.includes(C)) p2 = {symbol: key, number: values[1]};
+                                    if (value.includes(A)) p3 = {symbol: key, number: values[1]};
+                                }
+                            }
+                        },
+                        5: () => {
+                            for (const [key, value] of Object.entries(ABC_)) {
+                                if (value.includes(C)) p1 = {symbol: key, number: C};
+                                if (value.includes(A)) p2 = {symbol: key, number: A};
+                                if (value.includes(B)) p3 = {symbol: key, number: B};
+                            }
+                            if (JSON.stringify(ABC_) !== JSON.stringify(ABC)) {
+                                for (const [key, value] of Object.entries(ABC)) {
+                                    if (value.includes(C)) p1 = {symbol: key, number: values[1]};
+                                    if (value.includes(A)) p2 = {symbol: key, number: values[1]};
+                                    if (value.includes(B)) p3 = {symbol: key, number: values[1]};
+                                }
+                            }
+                        },
+                        6: () => {
+                            for (const [key, value] of Object.entries(ABC_)) {
+                                if (value.includes(C)) p1 = {symbol: key, number: C};
+                                if (value.includes(B)) p2 = {symbol: key, number: B};
+                                if (value.includes(A)) p3 = {
+                                    if (value.includes(A)) p3 = {symbol: key, number: A};
+                            }
+                            if (JSON.stringify(ABC_) !== JSON.stringify(ABC)) {
+                                for (const [key, value] of Object.entries(ABC)) {
+                                    if (value.includes(C)) p1 = {symbol: key, number: values[1]};
+                                    if (value.includes(B)) p2 = {symbol: key, number: values[1]};
+                                    if (value.includes(A)) p3 = {symbol: key, number: values[1]};
+                                }
+                            }
+                        }
+                    };
+                    if (patterns[diff]) {
+                        patterns[diff]();
+                        resultIndex++;
+                        
+                        const resultHtml = `
+                            <div class="result-item">
+                                <h3>ผลลัพธ์ที่ ${resultIndex}</h3>
+                                <p>คู่ที่พบ: ${symbol}${X[symbol][i]} และ ${symbol}${Y[symbol][i]}</p>
+                                <p>ไพ่ที่เหลือ: ${p1.symbol}${p1.number}, ${p2.symbol}${p2.number}, ${p3.symbol}${p3.number}</p>
+                                
+                                <div class="card-container">
+                                    <div class="card-group">
+                                        <div class="card-group-label">รูปแบบการเรียงไพ่:</div>
+                                        <div class="remaining-cards">
+                                            ${createCardSVG(symbol, X[symbol][i])}
+                                            ${createCardSVG(p1.symbol, p1.number)}
+                                            ${createCardSVG(p2.symbol, p2.number)}
+                                            ${createCardSVG(p3.symbol, p3.number)}
+                                            ${createCardSVG(symbol, Y[symbol][i])}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        resultsDiv.innerHTML += resultHtml;
+                    }
+                }
+            }
+
+            if (resultIndex === 0) {
+                resultsDiv.innerHTML = '<div class="result-item">ไม่สามารถหาคำตอบได้</div>';
+            }
+        }
+    </script>
+</body>
+</html>

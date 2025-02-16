@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Card Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+
+        .game-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-input {
+            margin: 20px 0;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input {
+            padding: 8px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        .result-item {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .instructions {
+            background-color: #e8f5e9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            display: inline-block;
+            margin: 5px;
+            width: 100px;
+            height: 140px;
+        }
+
+        .card-container {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+
+        .card-group {
+            margin: 10px 0;
+        }
+
+        .card-group-label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .pair-cards {
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="game-container">
+        <div class="instructions">
+            <h2>เกมไพ่</h2>
+            <p>กำหนดให้ไพ่หนึ่งสำรับมี 52 ใบ แบ่งออกเป็น 4 ชุด ได้แก่ ♥ ♦ ♣ ♠</p>
+            <p>แต่ละชุดมีหน้าไพ่ 13 แบบ ได้แก่ A 2 3 4 5 6 7 8 9 10 J Q K</p>
+            <p>สุ่มหยิบไพ่จากสำรับ 5 ใบ</p>
+        </div>
+
+        <div class="card-input">
+            <div class="input-group">
+                <label>ระบุ "สัญลักษณ์ของดอก" (เช่น ♥ ♦ ♣ ♠ ♥):</label>
+                <input type="text" id="symbols" placeholder="♥ ♦ ♣ ♠ ♥">
+            </div>
+            <div class="input-group">
+                <label>ระบุ "หน้าไพ่" (เช่น 3 5 7 9 11):</label>
+                <input type="text" id="numbers" placeholder="3 5 7 9 11">
+            </div>
+            <button onclick="calculateCards()">คำนวณ</button>
+        </div>
+
+        <div id="results" class="results"></div>
+    </div>
+
+    <script>
+        function createCardSVG(symbol, number) {
+            const symbolColor = (symbol === '♥' || symbol === '♦') ? '#FF0000' : '#000000';
+            const displayNumber = number === 1 ? 'A' :
+                number === 11 ? 'J' :
+                    number === 12 ? 'Q' :
+                        number === 13 ? 'K' : number;
+
+            return `
+                <svg class="card" viewBox="0 0 100 140">
+                    <rect x="5" y="5" width="90" height="130" fill="white" stroke="#000" stroke-width="2" rx="10"/>
+                    <text x="15" y="30" fill="${symbolColor}" font-size="20">${symbol}${displayNumber}</text>
+                    <text x="50" y="80" fill="${symbolColor}" font-size="40" text-anchor="middle">${symbol}</text>
+                    <text x="85" y="120" fill="${symbolColor}" font-size="20" text-anchor="end">${symbol}${displayNumber}</text>
+                </svg>
+            `;
+        }
+
+        function calculateCards() {
+            const symbols = document.getElementById('symbols').value.trim().split(' ');
+            const numbers = document.getElementById('numbers').value.trim().split(' ').map(Number);
+
+            if (symbols.length !== 5 || numbers.length !== 5) {
+                alert('กรุณาใส่ข้อมูลให้ครบ 5 ใบ');
+                return;
+            }
+
+            // Create card dictionary
+            const cardDict = {};
+            symbols.forEach((symbol, index) => {
+                if (!cardDict[symbol]) {
+                    cardDict[symbol] = [];
+                }
+                cardDict[symbol].push(numbers[index]);
+            });
+
+            // Find pairs with differences 1-6
+            const results = [];
+            for (const [symbol, nums] of Object.entries(cardDict)) {
+                if (nums.length > 1) {
+                    for (let i = 0; i < nums.length; i++) {
+                        for (let j = i + 1; j < nums.length; j++) {
+                            const diff = Math.abs(nums[i] - nums[j]);
+                            if (diff >= 1 && diff <= 6) {
+                                const remainingCards = [...symbols.map((s, idx) => ({
+                                    symbol: s,
+                                    number: numbers[idx]
+                                }))].filter(card =>
+                                    !(card.symbol === symbol &&
+                                        (card.number === nums[i] || card.number === nums[j]))
+                                );
+
+                                results.push({
+                                    pair: [
+                                        { symbol, number: nums[i] },
+                                        { symbol, number: nums[j] }
+                                    ],
+                                    remaining: remainingCards
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Display results
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+
+            if (results.length === 0) {
+                resultsDiv.innerHTML = '<div class="result-item">ไม่พบการจับคู่ที่เป็นไปได้</div>';
+                return;
+            }
+
+            results.forEach((result, index) => {
+                const resultHtml = `
+                    <div class="result-item">
+                        <h3>ผลลัพธ์ที่ ${index + 1}</h3>
+                        <p>คู่ที่พบ: ${result.pair[0].symbol}${result.pair[0].number} และ 
+                           ${result.pair[1].symbol}${result.pair[1].number}</p>
+                        <p>ไพ่ที่เหลือ: ${result.remaining.map(card =>
+                    `${card.symbol}${card.number}`).join(', ')}</p>
+                        
+                        <div class="card-container">
+                            <div class="card-group">
+                                <div class="card-group-label">รูปแบบการเรียงไพ่:</div>
+                                <div class="remaining-cards">
+                                    ${createCardSVG(result.pair[0].symbol, result.pair[0].number)}
+                                    ${result.remaining.map(card =>
+                        createCardSVG(card.symbol, card.number)).join('')}
+                        ${createCardSVG(result.pair[1].symbol, result.pair[1].number)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                resultsDiv.innerHTML += resultHtml;
+            });
+        }
+    </script>
+</body>
+
+</html>
